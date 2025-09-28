@@ -17,4 +17,8 @@ router.post("/admin/register",
 router.post("/admin/login", 
     authController.loginAdminUser)
 
+router.get("/check-role",
+    authController.checkAdminOrUser
+)
+
 module.exports = router

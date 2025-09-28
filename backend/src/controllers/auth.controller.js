@@ -158,11 +158,65 @@ async function loginAdminUser(req,res){
     })
 }
 
+const checkAdminOrUser = async (req, res) => {
+    try {
+        const token = req.cookies.token;
+
+        if (!token) {
+            return res.status(401).json({
+                message: "Unauthorized access. No token provided."
+            });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        let role = "";
+        let userData = null;
+
+        // Check if user exists in admin model
+        const admin = await adminModel.findById(decoded.id);
+        if (admin) {
+            role = "admin";
+            userData = {
+                id: admin._id,
+                username: admin.username,
+                email: admin.email
+            };
+        } else {
+            // Check if user exists in user model
+            const user = await userModel.findById(decoded.id);
+            if (user) {
+                role = "user";
+                userData = {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email
+                };
+            } else {
+                return res.status(404).json({
+                    message: "User not found in any model."
+                });
+            }
+        }
+
+        return res.status(200).json({
+            role: role,
+            userId: decoded.id,
+            user: userData
+        });
+            
+    } catch (err) {
+        return res.status(401).json({
+            message: "Invalid Token.",
+            error: err.message
+        });
+    }
+}
 
 module.exports = {
     registerUser,
     loginUser,
     registerAdminUser,
     loginAdminUser,
+    checkAdminOrUser
 
 }

@@ -5,6 +5,7 @@ const User = require('../models/user.model');
 
 async function createTask(req, res) {
     const { title, description, assignedTo, dueDate } = req.body;
+    let {priority} = req.body;
     const {organisation} = req.body
     if (!title || !description || !assignedTo || !dueDate || !organisation) {
             return res.status(400).json({ 
@@ -39,6 +40,7 @@ async function createTask(req, res) {
         });
     }
 
+    priority = priority ? priority.toLowerCase() : "medium";
 
     const task = new Task({
         title: title.trim(),
@@ -46,7 +48,7 @@ async function createTask(req, res) {
         dueDate,
         assignedTo,
         status: "pending",
-        priority: "medium",
+        priority: priority,
         organisation: org._id,
         createdBy: adminId
     });
@@ -77,7 +79,11 @@ async function getMyTasks(req, res) {
         return res.status(403).json({ message: "Only users can fetch their tasks" });
     }
 
-    const tasks = await Task.find({ assignedTo: req.user._id });
+    const tasks = await Task.find({ assignedTo: req.user._id })
+        .populate('assignedTo', 'username email')
+        .populate('createdBy', 'username email')
+        .populate('organisation', 'title description');
+        
     return res.status(200).json({ tasks });
 }
 

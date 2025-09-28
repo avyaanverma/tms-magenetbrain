@@ -44,16 +44,30 @@ async function createOrganisation(req, res){
 
 // route for specific admin and the organisations under the admin everyone can come here 
 async function getOrganisations(req, res){
-    const adminId = req.admin._id
+    try {
+        if (!req.admin || !req.admin._id) {
+            return res.status(401).json({
+                message: "Unauthorized access. Admin not found."
+            });
+        }
 
-    const allOrganisations = await organisationModel.find({
-        createdBy : adminId
-    })
+        const adminId = req.admin._id;
+        const allOrganisations = await organisationModel.find({
+            createdBy : adminId
+        })
+        .populate("createdBy", "username email")
+        .populate("members", "username email");
 
-    res.status(201).json({
-        message: "All organisations fetched success.",
-        organisations: allOrganisations
-    })
+        res.status(200).json({
+            message: "All organisations fetched success.",
+            organisations: allOrganisations
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: "Error fetching organisations.",
+            error: error.message
+        });
+    }
 }
 
 async function getOrganisationById(req,res){
@@ -61,7 +75,7 @@ async function getOrganisationById(req,res){
 
     const organisation = await organisationModel.findById(id)
         .populate("createdBy", "username email")
-        .populate("members")
+        .populate("members", "username email");
 
 
     if(!organisation){

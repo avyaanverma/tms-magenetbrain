@@ -17,8 +17,14 @@ async function authAdminMiddleware(req, res, next){
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
         const admin = await adminModel.findById(decoded.id)
+        if (!admin) {
+            return res.status(401).json({
+                message: "Admin not found."
+            })
+        }
 
         req.admin = admin
+        req.userId = decoded.id
         
         next()
 
@@ -55,38 +61,35 @@ async function authUserMiddleware(req,res,next){
     }
 }
 
-async function authAdminOrUser(req,res,next){
-    const token = req.cookies.token
-    
-    if(!token){
-        return res.status(400).json({
-            message: "Unauthorized access."
-        })
+async function authAdminOrUser(req, res, next) {
+    const token = req.cookies.token;
+
+    if (!token) {
+        return res.status(401).json({ message: "Unauthorized access." });
     }
 
-    try{
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        const user = await userModel.findById(decoded.id)
-        if(user){
-            req.user = user
-            next()
+        // Try to find user
+        const user = await userModel.findById(decoded.id);
+        if (user) {
+            req.user = user;
+            return next();
         }
 
-        const admin = await adminModel.findById(decoded.id)
-        if(admin){
-            req.admin = admin
-            next()
+        // Try to find admin
+        const admin = await adminModel.findById(decoded.id);
+        if (admin) {
+            req.admin = admin;
+            return next();
         }
 
-        return res.status(400).json({
-            message: "User Not Found"
-        })
+        // Neither found
+        return res.status(404).json({ message: "User or Admin not found." });
 
-    }catch(err){
-        return res.status(400).json({
-            message: err
-        })
+    } catch (err) {
+        return res.status(401).json({ message: "Invalid token." });
     }
 }
 
